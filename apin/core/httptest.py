@@ -4,13 +4,11 @@ import copy
 import re
 import json
 from numbers import Number
-
 import requests
 import jsonpath
 from apin.core.dataParser import DataParser
 from apin.core.initEvn import ENV, func_tools, DB
 from apin.core.basecase import BaseTestCase
-from apin.core.logger import CaseLog
 
 
 class CaseData:
@@ -134,7 +132,7 @@ class Extract:
         return value
 
 
-class HttpCase(BaseTestCase, Extract, CaseLog):
+class HttpCase(BaseTestCase, Extract):
     env = {}
     host = None
     interface = None
@@ -152,7 +150,7 @@ class HttpCase(BaseTestCase, Extract, CaseLog):
         if db_func:
             self.DBCheck = db_func(self, DB, ENV, self.env)
             try:
-                self.debug_log('执行前置sql语句')
+                self.info_log('执行前置sql语句')
                 next(self.DBCheck)
             except StopIteration:
                 del self.DBCheck
@@ -332,7 +330,7 @@ class HttpCase(BaseTestCase, Extract, CaseLog):
     def __assert_db(self):
         if hasattr(self, 'DBCheck'):
             try:
-                self.debug_log('执行后置sql语句')
+                self.info_log('执行后置sql语句')
                 next(self.DBCheck)
             except StopIteration as e:
                 assert_list = e.value

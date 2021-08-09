@@ -322,7 +322,7 @@
                                 {% if foo.count%}
                                 <li class="nav-item" role="presentation">
                                     <a class="nav-link" data-toggle="tab" role="tab" aria-controls="contact"
-                                       aria-selected="false" style="padding: 0 16px"><span style="color: #ff3c00">重运行{{foo.count}}}</span></a>
+                                       aria-selected="false" style="padding: 0 16px"><span style="color: #ff3c00">重运行{{foo.count}}次</span></a>
                                 </li>
                                 {% endif%}
                             </ul>
@@ -371,10 +371,10 @@
                                             <table class="table table-sm">
                                                 <thead>
                                                 <tr>
-                                                    <th scope="col" style="width: 40%">预期结果</th>
-                                                    <th scope="col" style="width: 40%">实际结果</th>
-                                                    <th scope="col" style="width: 8%">断言方法</th>
-                                                    <th scope="col" style="width: 12%">断言结果</th>
+                                                    <th scope="col" style="width: 30%">预期结果</th>
+                                                    <th scope="col" style="width: 30%">实际结果</th>
+                                                    <th scope="col" style="width: 15%">断言方法</th>
+                                                    <th scope="col" style="width: 15%">断言结果</th>
                                                 </tr>
                                                 </thead>
                                                 <tbody>
@@ -659,12 +659,7 @@
         tooltip: {
             formatter: '{a} <br/>{b} : {c}%'
         },
-        toolbox: {
-            feature: {
-                restore: {},
-                saveAsImage: {}
-            }
-        },
+
         series: [
             {
                 name: '测试结果',

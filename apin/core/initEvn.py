@@ -28,8 +28,12 @@ try:
 except:
     settings = Settings
 
-log = Logger(path=getattr(settings, 'LOG_FILE_PATH', None),
-             level=getattr(settings, 'LOG_FILE_PATH', 'DEBUG'))
+if settings.DEBUG:
+    log = Logger(path=getattr(settings, 'LOG_FILE_PATH', None),
+                 level='DEBUG')
+else:
+    log = Logger(path=getattr(settings, 'LOG_FILE_PATH', None),
+                 level='INFO')
 
 
 class BaseEnv(dict):
@@ -64,4 +68,4 @@ class BaseEnv(dict):
 
 ENV = BaseEnv('ENV')
 ENV.update(getattr(settings, 'ENV', {}))
-DB = DBClient(settings.DB)
+DB = DBClient(getattr(settings, 'DB', []))

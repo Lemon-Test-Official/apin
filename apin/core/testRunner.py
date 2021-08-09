@@ -1,14 +1,16 @@
 # Author:柠檬班-木森
 # E-mail:musen_nmb@qq.com
+import json
 import os
 import unittest
 import time
 import copy
 from jinja2 import Environment, FileSystemLoader
 from concurrent.futures.thread import ThreadPoolExecutor
-from apin.core.testResult import TestResult, ReRunResult
-from apin.core.resultPush import DingTalk, WeiXin, SendEmail
 from apin.core.initEvn import log
+from apin.core.testResult import ReRunResult
+from apin.core.resultPush import DingTalk, WeiXin, SendEmail
+
 
 
 class TestRunner():
@@ -68,7 +70,7 @@ class TestRunner():
         wrapper(copy.deepcopy(self.suite))
         return suites_list
 
-    def __get_reports(self):
+    def __get_reports(self,thread_count):
         """
         生成报告,返回测试汇中的结果
         :return: 包含测试结果的字典
@@ -82,12 +84,14 @@ class TestRunner():
             "error": 0,
             "results": [],
             "testClass": [],
+
         }
+
         # 整合测试结果
         for res in self.result:
             for item in test_result:
                 test_result[item] += res.fields[item]
-
+        test_result['thread_count'] =thread_count
         test_result['runtime'] = '{:.2f} S'.format(time.time() - self.starttime)
         test_result["begin_time"] = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(self.starttime))
         test_result["title"] = self.title
@@ -102,28 +106,32 @@ class TestRunner():
                  "\n失败:{}条"
                  "\n错误:{}条"
                  "\n运行时间:{}".format(
-            test_result['all'], test_result['success'], test_result['fail'], test_result['error'], test_result['runtime']
+            test_result['all'], test_result['success'], test_result['fail'], test_result['error'],
+            test_result['runtime']
         ))
         self.test_result = test_result
         # 判断是否要生产测试报告
-
-        if self.no_report:
-            return self.__get_results(test_result)
-        log.info("正在生成测试报告中......")
-        # 获取报告模板
-        template_path = os.path.join(os.path.dirname(__file__), '../templates/reports')
-        env = Environment(loader=FileSystemLoader(template_path))
-        if self.templates == 2:
-            template = env.get_template('templates02.html')
-        elif self.templates == 3:
-            template = env.get_template('templates03.html')
-        else:
-            template = env.get_template('templates.html')
-
         if os.path.isdir(self.report_dir):
             pass
         else:
             os.mkdir(self.report_dir)
+        if self.no_report:
+            return self.__get_results(test_result)
+        log.info("正在生成测试报告中......")
+
+        # 获取历史执行数据
+        test_result['history'] = self.__handle_history_data(test_result)
+
+        # 获取报告模板
+        template_path = os.path.join(os.path.dirname(__file__), '../templates/reports')
+        env = Environment(loader=FileSystemLoader(template_path))
+        if self.templates == 2:
+            template = env.get_template('templates2.html')
+        elif self.templates == 3:
+            template = env.get_template('templates3.html')
+        else:
+            template = env.get_template('templates1.html')
+
         file_path = os.path.join(self.report_dir, self.filename)
         # 渲染报告模板
         res = template.render(test_result)
@@ -144,8 +152,33 @@ class TestRunner():
                 'begin_time': test_result['begin_time'],
                 'tester': test_result['tester'],
                 'pass_rate': test_result['pass_rate'],
-                'report': file_path
+                'report': file_path,
+                "thread_count":thread_count
                 }
+
+    def __handle_history_data(self, test_result):
+        """
+        处理历史数据
+        :return:
+        """
+        try:
+            with open(os.path.join(self.report_dir, 'history.json'), 'r', encoding='utf-8') as f:
+                history = json.load(f)
+        except FileNotFoundError as e:
+            history = []
+        history.append({'success': test_result['success'],
+                        'all': test_result['all'],
+                        'fail': test_result['fail'],
+                        'skip': test_result['skip'],
+                        'error': test_result['error'],
+                        'runtime': test_result['runtime'],
+                        'begin_time': test_result['begin_time'],
+                        'pass_rate': test_result['pass_rate'],
+                        })
+
+        with open(os.path.join(self.report_dir, 'history.json'), 'w', encoding='utf-8') as f:
+            json.dump(history, f, ensure_ascii=True)
+        return history
 
     def __get_notice_content(self):
         """获取通知的内容"""
@@ -177,7 +210,7 @@ class TestRunner():
                 self.result.append(res)
                 ts.submit(i.run, result=res).add_done_callback(res.stopTestRun)
             ts.shutdown(wait=True)
-        result = self.__get_reports()
+        result = self.__get_reports(thread_count)
         return result
 
     def send_email(self, host, port, user, password, to_addrs, is_file=True):
